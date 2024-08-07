@@ -1,0 +1,17 @@
+python_dotenv
+flask_httpauth
+flask_restful
+flask_cors
+waitress
+pyaml
+requests
+Pillow
+boto3
+PyJWT
+cryptography
+flask_socketio>=5.3.6
+websocket-client
+gevent
+gunicorn
+etcd3
+protobuf==3.20.3

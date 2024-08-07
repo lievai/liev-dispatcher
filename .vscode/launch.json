@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Flask (Gunicorn)",
+        "type": "python",
+        "request": "launch",
+        "module": "gunicorn",
+        "args": [
+          "--threads=600",      // Use a single worker for easier debugging
+          "--timeout=1200",
+          "--bind=0.0.0.0:5011",
+          "--worker-class=gunicorn.workers.ggevent.GeventWorker",
+          "dispatcher:app"        // Replace `myapp:app` with the actual WSGI application object
+        ],
+        "env": {
+          "GEVENT_SUPPORT": "True"
+        },
+        "jinja": true
+      }
+    ]
+  }

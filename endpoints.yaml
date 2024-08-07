@@ -1,0 +1,152 @@
+llms:
+- name: vicuna
+  model: vicuna-13B-v1.5-16K-GPTQ
+  url: http://localhost:25000/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: false
+
+- name: claude
+  model: anthropic.claude-v2
+  url: http://localhost:35000/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: true
+
+- name: codellama
+  model: CodeLlama-13b-Instruct-hf
+  url: http://localhost:15000/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  stream_url: http://localhost:15100/
+  fim_url: http://localhost:15000/fim
+  is_external: false
+
+- name: deep
+  model: deep
+  url: http://34.234.123.133:5065/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  stream_url: http://34.234.123.133:5065
+  fim_url: http://34.234.123.133:5065/fim
+  is_external: false
+  
+- name: codellama-test-cases
+  model: CodeLlama-13b-Instruct-hf
+  url: http://localhost:15000/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  system_message: 'Você é um gerador de casos de teste'
+  prompt_mask: 'Gere casos de teste para o seguinte cenário: %PROMPT%'
+  is_external: false
+
+- name: openai
+  model: gpt-3.5-turbo
+  url: http://localhost:45000/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: true
+
+- name: mixtral
+  model: Mixtral-8x7B-Instruct-v0.1
+  url: http://localhost:44985/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: false
+
+- name: stablediffusion
+  model: stability.stable-diffusion-xl-v1
+  url: http://localhost:55000/image
+  username: username
+  password: changeme
+  response_mime: 'image/png'
+  is_external: true
+
+- name: toxicity
+  model: toxicity
+  url: http://localhost:65000/toxicity
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: false
+
+- name: embeddings
+  model: paraphrase-multilingual-MiniLM-L12-v2
+  url: http://localhost:15500/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: false
+
+- name: titan-embeddings
+  model: amazon.titan-embed-text-v1
+  url: http://localhost:25500/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: true
+
+- name: codellama-detect
+  model: CodeLlama-13b-Instruct-hf
+  url: http://localhost:15000/response
+  username: username
+  password: changeme
+  response_mime: 'text/plain'
+  system_message: "You are a content classifier"
+  prompt_mask: "Classify the following prompt between the categories. Return just the category name.\n Prompt: %PROMPT%. If the prompt requests for and object, presume it's an image. \n Allowed categories: text,image,embeddings,code,audio,toxicity\n Category:"
+  is_external: false
+
+
+
+types:
+- type: text
+  llms:
+  - name: vicuna
+    priority: 1
+  - name: claude
+    priority: 2
+  - name: codellama
+    priority: 3
+  - name: openai
+    priority: 4
+  - name: mixtral
+    priority: 5
+- type: image
+  llms:
+  - name: stablediffusion
+    priority: 1
+- type: code
+  llms:
+  - name: codellama
+    priority: 1
+  - name: openai
+    priority: 2
+  - name: claude
+    priority: 3
+- type: toxicity
+  llms:
+  - name: codellama
+    priority: 2
+  - name: toxicity
+    priority: 1
+- type: embeddings
+  llms:
+  - name: embeddings
+    priority: 1
+  - name: titan-embeddings
+    priority: 2
+- type: detect
+  llms:
+  - name: codellama-detect
+    priority: 1
+- type: testcase
+  llms:
+  - name: codellama-test-cases
+    priority: 1

@@ -1,0 +1,3 @@
+- username: lievuser
+  password: changeme
+  roles: ['LLM.User','LLM.Admin']

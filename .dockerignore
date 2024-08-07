@@ -1,0 +1,6 @@
+.env
+__pycache__
+venv
+jupyter
+.vscode
+azure-pipeline.yaml
