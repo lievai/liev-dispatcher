@@ -7,19 +7,9 @@ llms:
   response_mime: 'text/plain'
   is_external: false
 
-- name: openai-new
-  model: openai-new
-  url: http://host:5000/response
-  username: llmuser
-  password: changeme
-  response_mime: 'text/plain'
-  is_external: false
-  http_stream_url: http://34.234.123.133:5000/stream
-
-
-- name: claude
+- name: claude3
   model: anthropic.claude-v2
-  url: http://localhost:35000/response
+  url: http://localhost:5000/response
   username: username
   password: changeme
   response_mime: 'text/plain'
@@ -35,16 +25,7 @@ llms:
   fim_url: http://localhost:15000/fim
   is_external: false
 
-- name: deep
-  model: deep
-  url: http://34.234.123.133:5065/response
-  username: username
-  password: changeme
-  response_mime: 'text/plain'
-  stream_url: http://34.234.123.133:5065
-  fim_url: http://34.234.123.133:5065/fim
-  is_external: false
-  
+
 - name: codellama-test-cases
   model: CodeLlama-13b-Instruct-hf
   url: http://localhost:15000/response
