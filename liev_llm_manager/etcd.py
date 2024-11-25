@@ -34,7 +34,8 @@ class EtcdEndpointManager(BaseLLMManager):
                    prompt_mask='', 
                    is_external = False,
                    stream_url = None,
-                   http_stream_url = None):
+                   http_stream_url = None,
+                   fim_url = None):
         try:
             # Create item in etcd
             endpoint_data = {
@@ -49,6 +50,7 @@ class EtcdEndpointManager(BaseLLMManager):
                 "is_external": is_external,
                 "stream_url": stream_url if stream_url is not None else '',
                 "http_stream_url": http_stream_url if http_stream_url is not None else '',
+                "fim_url": fim_url if fim_url else None,
             }
             required_fields = ["name", "model", "url", "username", "password", "response_mime"]
             for field in required_fields:
@@ -162,7 +164,8 @@ class EtcdEndpointManager(BaseLLMManager):
                    prompt_mask=None, 
                    is_external = False,
                    stream_url = None,
-                   http_stream_url = None):
+                   http_stream_url = None,
+                   fim_url = None):
         try:
             # Fetch the existing item
             value, metadata = self.__etcd.get(f"/llms/endpoints/{name}")
@@ -182,6 +185,7 @@ class EtcdEndpointManager(BaseLLMManager):
                 "is_external": is_external,
                 "stream_url": stream_url if stream_url is not None else '',
                 "http_stream_url": http_stream_url if http_stream_url is not None else '',
+                "fim_url": fim_url if fim_url else None,
             }
 
             # Filter out None values

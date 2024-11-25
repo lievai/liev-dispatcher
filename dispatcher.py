@@ -74,7 +74,8 @@ def post_endpoint():
                             system_message = data['system_message'] if 'system_message' in data else '',
                             prompt_mask = data['prompt_mask'] if 'prompt_mask' in data else '',
                             stream_url = data['stream_url'] if 'stream_url' in data else '',
-                            http_stream_url = data['http_stream_url'] if 'stream_url' in data else '',                         
+                            http_stream_url = data['http_stream_url'] if 'http_stream_url' in data else '', 
+                            fim_url = data['fim_url'] if 'fim_url' in data else '',                       
         )
         logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',201
@@ -103,7 +104,8 @@ def update_endpoint():
                             system_message = data['system_message'] if 'system_message' in data else '',
                             prompt_mask = data['prompt_mask'] if 'prompt_mask' in data else '',
                             stream_url = data['stream_url'] if 'stream_url' in data else '',
-                            http_stream_url = data['http_stream_url'] if 'stream_url' in data else '',                      
+                            http_stream_url = data['http_stream_url'] if 'http_stream_url' in data else '',  
+                            fim_url = data['fim_url'] if 'fim_url' in data else '',                        
         )
         logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',201
@@ -198,7 +200,7 @@ def get_llms_types():
     # Remove the sensible fields
     filtered_fields_llms = []
     for llm in llms:
-        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
+        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url','http_stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
         filtered_fields_llms.append(filtered_field_llm)
     logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
     return json.dumps(filtered_fields_llms), 200
@@ -223,7 +225,7 @@ def get_llms_types_per_type(type_str):
     # Remove the sensible fields
     filtered_fields_llms = []
     for llm in llms:
-        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
+        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url','http_stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
         filtered_fields_llms.append(filtered_field_llm)
     logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
     return json.dumps(filtered_fields_llms), 200

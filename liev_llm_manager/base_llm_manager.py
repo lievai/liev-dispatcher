@@ -19,7 +19,8 @@ class BaseLLMManager():
                     prompt_mask='', 
                     is_external = False,
                     stream_url = None,
-                    http_stream_url = None):
+                    http_stream_url = None,
+                    fim_url = None):
         pass
 
     @abstractmethod
@@ -58,7 +59,8 @@ class BaseLLMManager():
                    prompt_mask, 
                    is_external = False,
                    stream_url = None,
-                   http_stream_url = None):
+                   http_stream_url = None,
+                   fim_url = None):
         pass
 
     @abstractmethod

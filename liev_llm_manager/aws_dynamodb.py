@@ -6,6 +6,7 @@ import os
 from config.config import Config
 from liev_llm_manager.exception.exception import LLMMissingRequiredFieldException
 from liev_llm_manager.base_llm_manager import BaseLLMManager
+from botocore.config import Config as BotoConfig
 
 name = 'DynamoDBEndpointManager'
 class DynamoDBEndpointManager(BaseLLMManager):
@@ -25,7 +26,8 @@ class DynamoDBEndpointManager(BaseLLMManager):
         try:
             self.__dynamodb = boto3.resource('dynamodb', aws_access_key_id=self.__aws_access_key_id,
                                             aws_secret_access_key=self.__aws_secret_access_key,
-                                            region_name=self.__region_name)
+                                            region_name=self.__region_name,
+                                            config=BotoConfig(max_pool_connections=50))
 
             # Endpoint table
             self.__endpoint_table = self.__dynamodb.Table(self.__endpoint_table_name)
@@ -96,7 +98,8 @@ class DynamoDBEndpointManager(BaseLLMManager):
                    prompt_mask='', 
                    is_external = False,
                    stream_url = None,
-                   http_stream_url = None):
+                   http_stream_url = None,
+                   fim_url = None):
         try:
             # Create item in the endpoint table
             endpoint_data = {
@@ -111,6 +114,7 @@ class DynamoDBEndpointManager(BaseLLMManager):
                 "is_external": is_external,
                 "stream_url": stream_url if stream_url is not None else '',
                 "http_stream_url": http_stream_url if http_stream_url is not None else '',
+                "fim_url": fim_url if fim_url else None,
             }
             required_fields = ["name", "model", "url", "username", "password", "response_mime"]
             for field in required_fields:
@@ -249,7 +253,8 @@ class DynamoDBEndpointManager(BaseLLMManager):
                    prompt_mask=None, 
                    is_external=False,
                    stream_url = None,
-                   http_stream_url = None):
+                   http_stream_url = None,
+                   fim_url = None):
         try:
             # Fetch the existing item
             response = self.__endpoint_table.get_item(Key={'name': name})
@@ -269,6 +274,7 @@ class DynamoDBEndpointManager(BaseLLMManager):
                 'is_external': is_external,
                 "stream_url": stream_url if stream_url is not None else '',
                 "http_stream_url": http_stream_url if http_stream_url is not None else '',
+                 "fim_url": fim_url if fim_url else None,
             }
 
             # Filter out None values
