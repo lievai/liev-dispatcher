@@ -110,11 +110,14 @@ class DispatcherController:
                         llm = self.__manager.get_llm_by_name(llm_name)
                         if llm is not None:
                             chosen_llms.append(llm)
+                            self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
                         elif llm is None and try_next_on_failure: 
                             chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
+                            self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
                     except Exception as e:
                         chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
-                    self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
+                        self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
+                    
 
             # If the payload doesn't contain the LLM name, let's get from the manager the LLM in the current priority for the given type
             else:
