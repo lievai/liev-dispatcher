@@ -119,7 +119,7 @@ class DispatcherController:
                     except Exception as e:
                         if llm is None and not try_next_on_failure:
                             self.__logger.error(f"Error calling {llm_name}: {e}. Won't trying failover")
-                            return f"No LLMs were available to process the request. Won't trying failover. Error message: {str(e)}", response_code
+                            return f"No LLMs were available to process the request. Won't trying failover. Error message: {str(e)}", 500
                         else:
                             chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
                             self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
