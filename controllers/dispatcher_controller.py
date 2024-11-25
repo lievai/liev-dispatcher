@@ -115,10 +115,10 @@ class DispatcherController:
                             chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
                             self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
                         else:
-                           raise Exception("LLM not found")
+                           raise Exception(f"LLM not found")
                     except Exception as e:
                         if llm is None and not try_next_on_failure:
-                            self.__logger.error(f"Error calling {llm_name}: {e}. Won't trying failover")
+                            self.__logger.error(f'Error calling {llm_name}: {e}. Won\'t trying failover - Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
                             return f"No LLMs were available to process the request. Won't trying failover. Error message: {str(e)}", 500
                         else:
                             chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
@@ -172,7 +172,7 @@ class DispatcherController:
 
                         # Set the indicator that the response is already a failover
                         is_failover_response = True
-                        self.__logger.error(f"Error calling {chosen_llm['name']}: {e}. Trying the next priority LLM for type {type_str}")
+                        self.__logger.error(f'Error calling {chosen_llm["name"]}: {e}. Trying the next priority LLM for type {type_str} - Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
                         
                         # If the request is based just on the llm_name, there is no failover
                         if llm_name is not None:
@@ -204,7 +204,7 @@ class DispatcherController:
                         if response_code is None:
                             response_code = 500
                         # Return error
-                        self.__logger.error(f"Error calling {chosen_llm['name']}: {e}. Won't trying failover")
+                        self.__logger.error(f'Error calling {chosen_llm["name"]}: {e}. Won\'t trying failover - Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
                         return f"No LLMs were available to process the request. Won't trying failover. Error message: {str(e)}", response_code
 
 
