@@ -79,7 +79,8 @@ class DispatcherControllerSocketio:
                     continue
 
             self._connection_map[client.get_sid()] = request_sid
-            self.__logger.info(f'LLM Request: socket.io response LLM_Name: {llm["name"]}, User: <>')
+            client_username = request_data['Liev-Client-Username'] if request_data['Liev-Client-Username'] else 'unknown'
+            self.__logger.info(f'LLM Request: socket.io response LLM_Name: {llm["name"]}, User: {client_username}')
             client.emit('response', json.dumps(request_data))
 
         except Exception as e:
