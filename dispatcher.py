@@ -152,12 +152,12 @@ def delete_type(type_str, llm_name):
 @auth.login_required(role=llm_user_role)
 def get_llms():
     # Remove the sensible fields
-    filtered_llms = []
+    filtered_fields_llms = []
     for llm in manager.get_all_llms():
-        filtered_llm = {key: value for key, value in llm.items() if key not in ['username', 'password']}
-        filtered_llms.append(filtered_llm)
+        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['username', 'password']}
+        filtered_fields_llms.append(filtered_field_llm)
     logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
-    return json.dumps(filtered_llms), 200
+    return json.dumps(filtered_fields_llms), 200
 
 # DELETE AN LLM
 @app.route('/v1/llm/<llm_name>', methods=['DELETE'])
@@ -177,25 +177,42 @@ def delete_llm(llm_name):
 @app.route('/v1/llms_and_types', methods=['GET'])
 @auth.login_required(role=llm_user_role)
 def get_llms_types():
+    llms = manager.get_all_llms_and_types()
+    llms = []
+    # Filter only Socket.io capable LLMs
+    if request.args.get('socketio') == 'true':
+        for llm in manager.get_all_llms_and_types():
+            if 'stream_url' in llm and len(llm['stream_url']) > 0:
+                llms.append(llm)
+    else:
+        llms = manager.get_all_llms_and_types()
     # Remove the sensible fields
-    filtered_llms = []
-    for llm in manager.get_all_llms_and_types():
-        filtered_llm = {key: value for key, value in llm.items() if key not in ['url', 'username', 'password', 'prompt_mask', 'system_message']}
-        filtered_llms.append(filtered_llm)
+    filtered_fields_llms = []
+    for llm in llms:
+        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
+        filtered_fields_llms.append(filtered_field_llm)
     logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
-    return json.dumps(filtered_llms), 200
+    return json.dumps(filtered_fields_llms), 200
 
 # GET LLMS BY TYPE
 @app.route('/v1/llms_and_types/<type_str>', methods=['GET'])
 @auth.login_required(role=llm_user_role)
 def get_llms_types_per_type(type_str):
+    llms = []
+    # Filter only Socket.io capable LLMs
+    if request.args.get('socketio') == 'true':
+        for llm in manager.get_llms_by_type(type_str):
+            if 'stream_url' in llm and len(llm['stream_url']) > 0:
+                llms.append(llm)
+    else:
+        llms = manager.get_llms_by_type(type_str)
     # Remove the sensible fields
-    filtered_llms = []
-    for llm in manager.get_llms_by_type(type_str):
-        filtered_llm = {key: value for key, value in llm.items() if key not in ['url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
-        filtered_llms.append(filtered_llm)
+    filtered_fields_llms = []
+    for llm in llms:
+        filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
+        filtered_fields_llms.append(filtered_field_llm)
     logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
-    return json.dumps(filtered_llms), 200
+    return json.dumps(filtered_fields_llms), 200
 
 @app.route('/v1/llms/<name>/<type>', methods=['GET'])
 @auth.login_required(role=llm_user_role)
