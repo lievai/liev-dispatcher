@@ -8,7 +8,18 @@ from abc import ABC, abstractmethod
 class BaseLLMManager():
 
     @abstractmethod
-    def create_llm(self, name, model, url, username, password, response_mime, system_message='', prompt_mask='', is_external = False):
+    def create_llm(self,
+                    name,
+                    model,
+                    url,
+                    username, 
+                    password, 
+                    response_mime, 
+                    system_message='', 
+                    prompt_mask='', 
+                    is_external = False,
+                    stream_url = None,
+                    http_stream_url = None):
         pass
 
     @abstractmethod
@@ -36,7 +47,18 @@ class BaseLLMManager():
         pass
 
     @abstractmethod
-    def update_llm(self, name, model, url, username, password, response_mime, system_message, prompt_mask, is_external = False):
+    def update_llm(self, 
+                   name, 
+                   model, 
+                   url, 
+                   username, 
+                   password, 
+                   response_mime, 
+                   system_message,
+                   prompt_mask, 
+                   is_external = False,
+                   stream_url = None,
+                   http_stream_url = None):
         pass
 
     @abstractmethod

@@ -11,10 +11,6 @@ class YAMLEndpointManager(BaseLLMManager):
             cls.__types = cls.__endpoints['types']
         return super().__new__(cls)
 
-    def create_llm(self, name, model, url, username, password, response_mime, system_message='', prompt_mask='', is_external = False):
-        raise NotImplementedError("LLM creation is not available through YAMLEndpointManager. Use the config files!")
-
-
     def get_llm_by_name(self, name, type=None):
         llm = None
         if (type is None):
@@ -31,12 +27,6 @@ class YAMLEndpointManager(BaseLLMManager):
                 raise Exception(f"No LLM available for name {name} and type {type}")
         return llm
     
-    def create_llm_type(self, name, type, priority):
-        raise NotImplementedError("LLM creation is not available through YAMLEndpointManager. Use the config files!")
-    
-    def update_llm_type(self, name, type, priority, is_external = False):
-        raise NotImplementedError("LLM creation is not available through YAMLEndpointManager. Use the config files!")
-
     def delete_llm_type(self, name, type):
         raise NotImplementedError("LLM creation is not available through YAMLEndpointManager. Use the config files!")
 
@@ -53,9 +43,6 @@ class YAMLEndpointManager(BaseLLMManager):
 
     def get_all_llms(self):
         return self.__endpoints['llms']
-    
-    def update_llm(self, name, model, url, username, password, response_mime, system_message='', prompt_mask=''):
-        raise NotImplementedError("LLM deletion is not available through YAMLEndpointManager. Use the config files!")
 
     def delete_llm(self, name):
         raise NotImplementedError("LLM deletion is not available through YAMLEndpointManager. Use the config files!")
@@ -70,7 +57,6 @@ class YAMLEndpointManager(BaseLLMManager):
             raise Exception(f"No LLM available for type {type}")
         return llm
     
-
     def get_llms_by_type(self, type):
         llms = []
         for l in self.get_all_llms_and_types():

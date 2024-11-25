@@ -85,7 +85,18 @@ class DynamoDBEndpointManager(BaseLLMManager):
         table.meta.client.get_waiter('table_exists').wait(TableName=self.__type_table_name)
         self.__logger.info('Type table created successfully!')
 
-    def create_llm(self, name, model, url, username, password, response_mime, system_message='', prompt_mask='', is_external = False):
+    def create_llm(self, 
+                   name, 
+                   model, 
+                   url, 
+                   username, 
+                   password, 
+                   response_mime, 
+                   system_message='', 
+                   prompt_mask='', 
+                   is_external = False,
+                   stream_url = None,
+                   http_stream_url = None):
         try:
             # Create item in the endpoint table
             endpoint_data = {
@@ -97,7 +108,9 @@ class DynamoDBEndpointManager(BaseLLMManager):
                 "response_mime": response_mime,
                 "system_message": system_message,
                 "prompt_mask": prompt_mask,
-                "is_external": is_external
+                "is_external": is_external,
+                "stream_url": stream_url if stream_url is not None else '',
+                "http_stream_url": http_stream_url if http_stream_url is not None else '',
             }
             required_fields = ["name", "model", "url", "username", "password", "response_mime"]
             for field in required_fields:
@@ -225,8 +238,18 @@ class DynamoDBEndpointManager(BaseLLMManager):
             self.__logger.error(f"Error getting all LLMs: {e}", exc_info=True)
             raise
 
-    #def update_llm(self, name, model=None, url=None, username=None, password=None, response_mime=None, system_message=None, prompt_mask=None):
-    def update_llm(self, name, model=None, url=None, username=None, password=None, response_mime=None, system_message=None, prompt_mask=None, is_external=False):
+    def update_llm(self, 
+                   name, 
+                   model=None, 
+                   url=None, 
+                   username=None, 
+                   password=None, 
+                   response_mime=None, 
+                   system_message=None, 
+                   prompt_mask=None, 
+                   is_external=False,
+                   stream_url = None,
+                   http_stream_url = None):
         try:
             # Fetch the existing item
             response = self.__endpoint_table.get_item(Key={'name': name})
@@ -243,7 +266,9 @@ class DynamoDBEndpointManager(BaseLLMManager):
                 'response_mime': response_mime,
                 'system_message': system_message,
                 'prompt_mask': prompt_mask,
-                'is_external': is_external
+                'is_external': is_external,
+                "stream_url": stream_url if stream_url is not None else '',
+                "http_stream_url": http_stream_url if http_stream_url is not None else '',
             }
 
             # Filter out None values

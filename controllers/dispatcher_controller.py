@@ -6,10 +6,10 @@ from config.config import Config
 import controllers.constants as constants
 import concurrent.futures
 
-from exception.exceptions import FimNotSupportedException
+from exception.exceptions import FimNotSupportedException, HttpStreamingNotSupportedException
 from liev_llm_manager.manager import get_manager
 from requests.auth import HTTPBasicAuth as HTTPBasicAuthServer
-from flask import request as flask_request
+from flask import Response, request as flask_request
 
 
 class DispatcherController:
@@ -38,7 +38,7 @@ class DispatcherController:
         else:
             self.__logger.warn('Toxicity filter is disabled! Counting only with model protections.')
 
-    def get_response(self, data, auth, is_fim = False):
+    def get_response(self, data, auth, is_fim = False, stream = False):
         """
         Processes a request to the dispatcher, managing LLM interactions and handling failovers.
 
@@ -110,18 +110,27 @@ class DispatcherController:
                         llm = self.__manager.get_llm_by_name(llm_name)
                         if llm is not None:
                             chosen_llms.append(llm)
+                            self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
                         elif llm is None and try_next_on_failure: 
                             chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
+                            self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
+                        else:
+                           raise Exception("LLM not found")
                     except Exception as e:
-                        chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
-                    self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
+                        if llm is None and not try_next_on_failure:
+                            self.__logger.error(f"Error calling {llm_name}: {e}. Won't trying failover")
+                            return f"No LLMs were available to process the request. Won't trying failover. Error message: {str(e)}", response_code
+                        else:
+                            chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
+                            self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
+                    
 
             # If the payload doesn't contain the LLM name, let's get from the manager the LLM in the current priority for the given type
             else:
                 chosen_llms.append(self.__manager.get_llm_by_priority(type_str, current_priority))
                 self.__logger.debug(f"Chosen LLM is: {chosen_llms[0]['name']}")
         except Exception as e:
-            self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Type: {type_str}, User: {auth.current_user()}')
+            self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Type: {type_str}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
             self.__logger.error(f"Error getting next priority LLM: {e}", exc_info=True)
             return json.dumps("No LLMs were available to process the request"), 500
 
@@ -129,6 +138,7 @@ class DispatcherController:
         if len(chosen_llms) == 1:
             chosen_llm = chosen_llms[0]
 
+            response = None
             response_content = ''
             response_code = None
 
@@ -136,20 +146,23 @@ class DispatcherController:
             while not processed:
                 try:
                     # Call the LLM
-                    response = self.__call_llm(chosen_llm, data, is_fim)
+                    response = self.__call_llm(chosen_llm, data, is_fim, stream)
 
                     # Set the response type based on chosen llm information
                     response_mime = chosen_llm['response_mime']
 
-                    # Get the response content and responde code
-                    response_content = response.content
+                    # If sync http , get the response content and responde code
                     response_code = response.status_code
+                    if (stream == False):
+                        response_content = response.content
+                        self.__logger.info(f'LLM Request: {flask_request.method} {flask_request.path} LLM_Name: {chosen_llm["name"]}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {len(response.content)}, Response_Time: {response.elapsed.total_seconds()}')
+
 
                     # If unsuccessful, raise
                     if response_code != 200:
                         raise Exception(f"Response code not successful: {response_code} {response_content}")
 
-                    self.__logger.info(f'LLM Request: {flask_request.method} {flask_request.path} LLM_Name: {chosen_llm["name"]}, User: {auth.current_user()}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {len(response.content)}, Response_Time: {response.elapsed.total_seconds()}')
+                    
                 
                 # Oops, got problems on calling the current LLM
                 except Exception as e:
@@ -182,7 +195,7 @@ class DispatcherController:
                         except Exception as e:
 
                             # No LLMs were available. Return error.
-                            self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} User: {auth.current_user()}')
+                            self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
                             self.__logger.error(f"Error getting next priority LLM: {e}", exc_info=True)
                             return json.dumps("No LLMs were available to process the request"), 500
                         
@@ -198,6 +211,7 @@ class DispatcherController:
                 # I have an LLM response! Set processed true to skip the next priority iteration loop
                 processed = True
 
+
                 # Set response and headers
                 response_headers = {
                     'Content-Type': response_mime,
@@ -205,7 +219,27 @@ class DispatcherController:
                     'Liev-Response-Is-Failover': is_failover_response,
                     'Liev-Response-Failed-Models': ",".join(failed_llms)
                 }
-                return response_content, response_code, response_headers
+                
+                # If streaming
+                if stream:
+                    flask_request_method = flask_request.method
+                    flask_request_path = flask_request.path
+                    chosen_llm_name = chosen_llm["name"]
+                    auth_application = auth.current_user()["application"]
+                    auth_username =  auth.current_user()["username"]
+                    
+                    def generate():
+                        response_bytes = 0
+                        for chunk in response.iter_content(chunk_size=20):
+                            if chunk:
+                                response_bytes += len(chunk)
+                                yield chunk
+                        self.__logger.info(f'LLM Request: {flask_request_method} {flask_request_path} LLM_Name: {chosen_llm_name}, Application: {auth_application}, User: {auth_username}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {response_bytes}, Response_Time: {response.elapsed.total_seconds()}')
+                    return Response(generate(), mimetype='application/json',  headers=response_headers)
+                    
+                # If http sync
+                else:
+                    return response_content, response_code, response_headers
 
         # Start the flow with multi LLM responses
         else:
@@ -231,9 +265,9 @@ class DispatcherController:
                         data = future.result()
                         combined_answers.append(json.loads(f'{{"name":"{llm["name"]}({llm["model"]})", "response": {data.text}}}'))
                         successful_llms.append(f'{llm["name"]}({llm["model"]})')
-                        self.__logger.info(f'LLM Request: {method} {path} LLM_Name: {llm["name"]}, User: {user}, Request_Bytes: {len(data.request.body)}, Response_Bytes: {len(data.text)}, Response_Time: {data.elapsed.total_seconds()}')
+                        self.__logger.info(f'LLM Request: {method} {path} LLM_Name: {llm["name"]}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}, Request_Bytes: {len(data.request.body)}, Response_Bytes: {len(data.text)}, Response_Time: {data.elapsed.total_seconds()}')
                     except Exception as exc:
-                        self.__logger.error(f'LLM Request: {method} {path} LLM_Name: {llm["name"]}, User: {user}')
+                        self.__logger.error(f'LLM Request: {method} {path} LLM_Name: {llm["name"]}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
                         self.__logger.error(f"Error calling {llm['name']}: {exc}", exc_info=True)
                         failed_llms.append(f'{llm["name"]}({llm["model"]})')
                 
@@ -245,7 +279,7 @@ class DispatcherController:
                 }
                 return json.dumps(combined_answers), 200, response_headers
 
-    def __call_llm(self, chosen_llm, data, is_fim = False):
+    def __call_llm(self, chosen_llm, data, is_fim = False, stream = False):
         """
         Calls the specified LLM with the given data.
         Replaces system message and sets prompt mask, if defined in LLM endpoint configuration
@@ -260,12 +294,11 @@ class DispatcherController:
         username = chosen_llm['username']
         password = chosen_llm['password']
         
-        auth_server = HTTPBasicAuthServer(username, password)
-        
-        
+        auth_server = HTTPBasicAuthServer(username, password)    
 
+        response = None
         if not is_fim:
-            address = chosen_llm['url']
+            
             # Use the prompt mask, if defined in the LLM configuration
             if 'instruction' in data:
                 data['instruction'] = self.__set_prompt_to_prompt_mask(data['instruction'], chosen_llm)
@@ -273,8 +306,15 @@ class DispatcherController:
             # Use the default system message, if defined in the LLM configuration
             if 'system_message' in chosen_llm and len(chosen_llm['system_message']) > 0:
                 data['system_msg'] = chosen_llm['system_message']
-
-            response = requests.get(address, data=json.dumps(data), auth=auth_server)
+            if stream:
+                if 'http_stream_url' in chosen_llm:
+                    address = chosen_llm['http_stream_url']
+                    response = requests.post(address, data=json.dumps(data), auth=auth_server, stream=True)
+                else:
+                    raise HttpStreamingNotSupportedException()
+            else:
+                address = chosen_llm['url']
+                response = requests.get(address, data=json.dumps(data), auth=auth_server)
         else:
             if 'fim_url' in chosen_llm:
                 address = chosen_llm['fim_url']
@@ -339,7 +379,7 @@ class DispatcherController:
             
             # Call The LLM
             response = self.__call_llm(detect_llm, data_detect)        
-            self.__logger.info(f'LLM Request: {flask_request.method} {flask_request.path} LLM_Name: {detect_llm["name"]}, User: {auth.current_user()}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {len(response.content)}, Response_Time: {response.elapsed.total_seconds()}')
+            self.__logger.info(f'LLM Request: {flask_request.method} {flask_request.path} LLM_Name: {detect_llm["name"]}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {len(response.content)}, Response_Time: {response.elapsed.total_seconds()}')
             
             # Strip the detected type from extra chars, giving just the type word
             # Sets the type detected in the type_str variable to continue the flow to call the appropriate LLM
@@ -352,7 +392,7 @@ class DispatcherController:
             self.__logger.debug(f"Type detected: {type_str}")
             return type_str
         except Exception as e:
-            self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Type: detect, User: {auth.current_user()}')
+            self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Type: detect, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
             self.__logger.error(f"Error calling {detect_llm['name']}: {e}", exc_info=True)
             return json.dumps("No LLMs were available to process the content detection. Try specifying type in payload"), 500
         
@@ -377,14 +417,14 @@ class DispatcherController:
 
                 # Call The LLM
                 response = requests.get(address, data=json.dumps(data_toxicity), auth=auth_server)        
-                self.__logger.info(f'LLM Request: {flask_request.method} {flask_request.path} LLM_Name: {toxicity_llm["name"]}, User: {auth.current_user()}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {len(response.content)}, Response_Time: {response.elapsed.total_seconds()}')
+                self.__logger.info(f'LLM Request: {flask_request.method} {flask_request.path} LLM_Name: {toxicity_llm["name"]}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}, Request_Bytes: {len(response.request.body)}, Response_Bytes: {len(response.content)}, Response_Time: {response.elapsed.total_seconds()}')
                 
                 # Parse the boolean return
                 bool_toxic = self.__str_to_bool(response.text.replace("'", "").replace('"', '').strip().lower())
                 
                 return bool_toxic
             except Exception as e:
-                self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Type: detect, User: {auth.current_user()}')
+                self.__logger.error(f'LLM Request: {flask_request.method} {flask_request.path} Type: detect, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
                 self.__logger.error(f"Error calling {toxicity_llm['name']}: {e}", exc_info=True)
                 return json.dumps("No LLMs were available to process toxicity. Try specifying type in payload"), 500
 

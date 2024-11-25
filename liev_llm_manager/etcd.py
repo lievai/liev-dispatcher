@@ -23,7 +23,18 @@ class EtcdEndpointManager(BaseLLMManager):
         except Exception as e:
             self.__logger.error(f"Error initializing EtcdEndpointManager: {e}", exc_info=True)
 
-    def create_llm(self, name, model, url, username, password, response_mime, system_message='', prompt_mask='', is_external = False):
+    def create_llm(self, 
+                   name, 
+                   model, 
+                   url, 
+                   username, 
+                   password, 
+                   response_mime,
+                   system_message='', 
+                   prompt_mask='', 
+                   is_external = False,
+                   stream_url = None,
+                   http_stream_url = None):
         try:
             # Create item in etcd
             endpoint_data = {
@@ -35,7 +46,9 @@ class EtcdEndpointManager(BaseLLMManager):
                 "response_mime": response_mime,
                 "system_message": system_message,
                 "prompt_mask": prompt_mask,
-                "is_external": is_external
+                "is_external": is_external,
+                "stream_url": stream_url if stream_url is not None else '',
+                "http_stream_url": http_stream_url if http_stream_url is not None else '',
             }
             required_fields = ["name", "model", "url", "username", "password", "response_mime"]
             for field in required_fields:
@@ -138,7 +151,18 @@ class EtcdEndpointManager(BaseLLMManager):
             self.__logger.error(f"Error getting all LLMs: {e}", exc_info=True)
             raise
 
-    def update_llm(self, name, model=None, url=None, username=None, password=None, response_mime=None, system_message=None, prompt_mask=None, is_external = False):
+    def update_llm(self, 
+                   name, 
+                   model=None, 
+                   url=None, 
+                   username=None, 
+                   password=None, 
+                   response_mime=None, 
+                   system_message=None, 
+                   prompt_mask=None, 
+                   is_external = False,
+                   stream_url = None,
+                   http_stream_url = None):
         try:
             # Fetch the existing item
             value, metadata = self.__etcd.get(f"/llms/endpoints/{name}")
@@ -150,12 +174,14 @@ class EtcdEndpointManager(BaseLLMManager):
 
             # Only update the provided fields
             update_fields = {
-                'model': model,
-                'url': url,
-                'response_mime': response_mime,
-                'system_message': system_message,
-                'prompt_mask': prompt_mask,
-                'is_external': is_external
+                "model": model,
+                "url": url,
+                "response_mime": response_mime,
+                "system_message": system_message,
+                "prompt_mask": prompt_mask,
+                "is_external": is_external,
+                "stream_url": stream_url if stream_url is not None else '',
+                "http_stream_url": http_stream_url if http_stream_url is not None else '',
             }
 
             # Filter out None values

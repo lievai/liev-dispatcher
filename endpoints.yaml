@@ -7,6 +7,16 @@ llms:
   response_mime: 'text/plain'
   is_external: false
 
+- name: openai-new
+  model: openai-new
+  url: http://host:5000/response
+  username: llmuser
+  password: changeme
+  response_mime: 'text/plain'
+  is_external: false
+  http_stream_url: http://34.234.123.133:5000/stream
+
+
 - name: claude
   model: anthropic.claude-v2
   url: http://localhost:35000/response
