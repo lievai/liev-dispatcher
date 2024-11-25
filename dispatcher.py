@@ -309,6 +309,7 @@ def authenticated_only(f):
     @functools.wraps(f)
     def wrapped(*args, **kwargs):
         if not authenticated_user:
+            emit('error', 'Invalid auth')
             disconnect()
         else:
             return f(*args, **kwargs)
@@ -322,9 +323,11 @@ def connect_handler(auth):
         authenticated_user = True
     else:
         authenticated_user = False
+        emit('error', 'Invalid auth')
         disconnect()
 
 @socketio_app.on('response')
+@authenticated_only
 def handle_response(jsondata):
     try:
         data = json.loads(jsondata)

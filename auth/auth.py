@@ -62,7 +62,11 @@ class AuthHelper():
         user = next((user for user in self.__users if user["username"] == username), None)
         if user==None:
             return False
-        return { 'username': username, 'application': None }
+        else:
+            if user["password"] == password:
+                return { 'username': username, 'application': None }
+            else:
+                return False
     
     def verify_password(self, username, password):
         return self.__verify_password(username, password)
