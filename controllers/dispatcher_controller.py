@@ -230,7 +230,7 @@ class DispatcherController:
                     
                     def generate():
                         response_bytes = 0
-                        for chunk in response.iter_content(chunk_size=20):
+                        for chunk in response.iter_content(chunk_size=1000):
                             if chunk:
                                 response_bytes += len(chunk)
                                 yield chunk
