@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from requests.auth import HTTPBasicAuth
 from config.config import Config
 from controllers.dispatcher_controller import DispatcherController
-from controllers.dispatcher_controller_stream import DispatcherControllerStream
+from controllers.dispatcher_controller_socketio import DispatcherControllerSocketio
 from exception.exceptions import FimNotSupportedException
 from liev_llm_manager.etcd import EtcdEndpointManager
 from liev_llm_manager.exception.exception import LLMMissingRequiredFieldException
@@ -74,13 +74,13 @@ def post_endpoint():
                             system_message = data['system_message'] if 'system_message' in data else '',
                             prompt_mask = data['prompt_mask'] if 'prompt_mask' in data else ''                        
         )
-        logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',201
     except LLMMissingRequiredFieldException as llmex:
-        logger.error(f'Request: {request.method} {request.path}, User: {auth.current_user()}', exc_info=True)
+        logger.error(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}', exc_info=True)
         return llmex.message, 400
     except Exception as e:
-        logger.error(f'Request: {request.method} {request.path}, User: {auth.current_user()}', exc_info=True)
+        logger.error(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}', exc_info=True)
         logger.error(f"Error calling post_endpoint: {e}", exc_info=True)
         return json.dumps("JSON load problem !"), 500
 
@@ -101,10 +101,10 @@ def update_endpoint():
                             system_message = data['system_message'] if 'system_message' in data else '',
                             prompt_mask = data['prompt_mask'] if 'prompt_mask' in data else ''                          
         )
-        logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',201
     except LLMMissingRequiredFieldException as llmex:
-        logger.error(f'Request: {request.method} {request.path}, User: {auth.current_user()}', exc_info=True)
+        logger.error(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}', exc_info=True)
         return llmex.message, 400
     except Exception as e:
         logger.error(f"Error calling post_endpoint: {e}", exc_info=True)
@@ -122,10 +122,10 @@ def post_type():
                             data['type'],
                             data['priority'],                   
         )
-        logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',201
     except LLMMissingRequiredFieldException as llmex:
-        logger.error(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.error(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return llmex.message, 400
     except Exception as e:
         logger.error(f"Error calling post_endpoint: {e}", exc_info=True)
@@ -140,7 +140,7 @@ def delete_type(type_str, llm_name):
                             llm_name,
                             type_str,
         )
-        logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',202
     except Exception as e:
         logger.error(f"Error calling delete_llm_type: {e}", exc_info=True)
@@ -156,7 +156,7 @@ def get_llms():
     for llm in manager.get_all_llms():
         filtered_field_llm = {key: value for key, value in llm.items() if key not in ['username', 'password']}
         filtered_fields_llms.append(filtered_field_llm)
-    logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+    logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
     return json.dumps(filtered_fields_llms), 200
 
 # DELETE AN LLM
@@ -165,7 +165,7 @@ def get_llms():
 def delete_llm(llm_name):
     try:
         manager.delete_llm(llm_name)
-        logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         return 'Success',204
     except Exception as e:
         logger.error(f"Error calling delete_llm: {e}", exc_info=True)
@@ -191,7 +191,7 @@ def get_llms_types():
     for llm in llms:
         filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
         filtered_fields_llms.append(filtered_field_llm)
-    logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+    logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
     return json.dumps(filtered_fields_llms), 200
 
 # GET LLMS BY TYPE
@@ -211,13 +211,13 @@ def get_llms_types_per_type(type_str):
     for llm in llms:
         filtered_field_llm = {key: value for key, value in llm.items() if key not in ['url', 'fim_url', 'stream_url', 'api', 'username', 'password', 'prompt_mask', 'system_message']}
         filtered_fields_llms.append(filtered_field_llm)
-    logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+    logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
     return json.dumps(filtered_fields_llms), 200
 
 @app.route('/v1/llms/<name>/<type>', methods=['GET'])
 @auth.login_required(role=llm_user_role)
 def get_llm(name, type):
-    logger.info(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+    logger.info(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
     return manager
 
 #----------------------------------------------------------------------------------------------------
@@ -231,7 +231,7 @@ def response():
     try:
         data = json.loads(data)
     except Exception as e :
-        logger.error(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.error(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         logger.error(f"{json_load_prob_msg}: {e}", exc_info=True)
         return json.dumps("JSON load problem !"), 500
 
@@ -248,7 +248,7 @@ def fim():
     try:
         data = json.loads(data)
     except Exception as e :
-        logger.error(f'Request: {request.method} {request.path}, User: {auth.current_user()}')
+        logger.error(f'Request: {request.method} {request.path}, Application: {auth.current_user()["application"]}, User: {auth.current_user()["username"]}')
         logger.error(f"{json_load_prob_msg}: {e}", exc_info=True)
         return json.dumps("JSON load problem !"), 500
 
@@ -267,7 +267,7 @@ def fim():
 CORS(app)  # Habilitar CORS
 socketio_app = SocketIO(app, cors_allowed_origins="*", ping_timeout=120, ping_interval=25)
 
-controller_stream = DispatcherControllerStream()
+controller_stream = DispatcherControllerSocketio()
 
 def authenticated_only(f):
     @functools.wraps(f)

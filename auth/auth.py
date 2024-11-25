@@ -62,7 +62,7 @@ class AuthHelper():
         user = next((user for user in self.__users if user["username"] == username), None)
         if user==None:
             return False
-        return username
+        return { 'username': username, 'application': None }
     
     def verify_password(self, username, password):
         return self.__verify_password(username, password)
@@ -78,19 +78,20 @@ class AuthHelper():
             return False
         else:
             if 'preferred_username' in decoded_token:
-                return decoded_token['preferred_username'] # Return the client username, if it's a personal token
+                return { 'username': decoded_token['preferred_username'] , 'application' : None } # Return the client username, if it's a personal token
             elif 'azp' in decoded_token:
                 if 'Liev-Client-Username' in request.headers:
-                    return f"{decoded_token['azp']}\{request.headers['Liev-Client-Username']}"
-                return decoded_token['azp'] # Return Authorized Party ID, if it's a client application
+                    #return f"{decoded_token['azp']}\{request.headers['Liev-Client-Username']}"
+                    return { 'username': request.headers['Liev-Client-Username'], 'application' : decoded_token['azp'] }
+                return { 'username': 'unknown' , 'application' : decoded_token['azp'] }  # Return Authorized Party ID, if it's a client application
             else:
                return False
 
-    def __get_user_roles_basic(self, username):
-        user = next((user for user in self.__users if user["username"] == username), None)
+    def __get_user_roles_basic(self, userinfo):
+        user = next((user for user in self.__users if user["username"] == userinfo["username"]), None)
         return user['roles']
     
-    def __get_user_roles_oauth(self, username):
+    def __get_user_roles_oauth(self, userinfo):
         token = request.headers.get('Authorization', '').split('Bearer ')[-1]
         decoded_token = self.__token_is_valid(self.__client_id, token)
 
@@ -101,9 +102,7 @@ class AuthHelper():
         else:
             raise Exception('Cannot obtain username or azp from decoded token')
 
-        if '\\' in username:
-            username = username.split('\\')[0]
-        if username == username_token:
+        if userinfo['application'] == username_token or userinfo['username'] == username_token:
             # Get the roles from the property roles. Usually MS AD put roles inside this property
             if 'roles' in decoded_token:
                 roles = decoded_token['roles']
